@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      # Fast type-check of every target (libs, bins, integration tests, examples).
+      # Uses .rmeta only — no codegen, no linking. Catches compile errors cheaply.
+      - name: Check all targets
+        run: cargo check --workspace --all-targets
+
+      # Run unit tests (--lib only). Skips linking all binaries and integration
+      # tests, which is the most expensive part. The check step above already
+      # verified those targets compile.
+      # Note: Artemis regression test requires kernels/de440s.bsp (not in git)
+      # and is #[ignore] — run locally before pushing:
+      #   cargo test -p artemis --test regression -- --ignored --nocapture
+      - name: Run unit tests
+        run: cargo test --lib --workspace

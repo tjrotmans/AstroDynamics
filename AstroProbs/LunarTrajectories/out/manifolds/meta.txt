@@ -1,0 +1,8 @@
+family=Lyapunov { lagrange: 2 }
+amplitude=0.01
+period_nd=3.37806773
+period_days=14.6692
+jacobi=3.16971173
+lambda_unstable=1421.819998
+n_branches=20
+t_man=7.853982

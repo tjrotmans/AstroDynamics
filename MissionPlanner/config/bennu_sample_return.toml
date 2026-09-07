@@ -1,0 +1,128 @@
+# Bennu Sample Return Mission
+# Modelled on OSIRIS-REx / OSIRIS-APEX. Parameters from Chesley et al. 2020,
+# Scheeres et al. 2020, Lauretta et al. 2019.
+
+[mission]
+name = "Bennu Sample Return"
+objective = "SampleReturn"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name       = "Bennu"
+mu_m3s2    = 4.89          # Chesley et al. 2020 (Icarus)
+radius_m   = 262.0         # Lauretta et al. 2019 (Science)
+gravity_model = "J2J3J4"
+atmosphere    = "None"
+j2 =  1.926101e-2          # Scheeres et al. 2020 (Science Advances)
+j3 = -1.221940e-3
+j4 = -6.496002e-3
+ephemeris  = "Keplerian"
+
+# Heliocentric ecliptic J2000 elements from JPL Horizons (solution 200)
+# Epoch: 2024-Jun-25.0 TDB (JD 2460486.5)
+[target_body.keplerian_orbit]
+sma_au           = 1.12637
+eccentricity     = 0.20375
+inclination_deg  = 6.0349
+raan_deg         = 2.0829
+aop_deg          = 66.2231
+mean_anomaly_deg = 218.7
+epoch_jd         = 2460486.5
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 1000.0
+dry_mass_kg        =  800.0
+propellant_mass_kg =  200.0
+bus_dims_m         = [2.0, 2.0, 0.63]
+inertia_diag_kgm2  = [366.67, 366.67, 666.67]
+srp_model          = "FlatPlate"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 320.0
+thrust_n =  22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "Ithaco_B"
+count          = 4
+max_speed_rads = 628.3     # ≈ 6000 RPM
+max_torque_nm  = 0.12
+inertia_kgm2   = 0.012
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 1.0
+count        = 12
+moment_arm_m = 1.0
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+model     = "Sodern_CT633"
+noise_rad = 9.7e-5         # ≈ 20 arcsec per axis
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01     # ΔV noise per axis per step
+
+[[spacecraft.hardware]]
+type                    = "OpNavCamera"
+bearing_noise_mrad      = 0.1
+angular_size_noise_mrad = 0.2
+
+[[spacecraft.hardware]]
+type          = "Lidar"
+range_noise_m = 5.0
+max_range_m   = 5000.0
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 4.0
+efficiency = 0.28
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases         = ["Cruise", "Capture", "Survey", "CloseOrbit", "Flyover",
+                  "ScienceHold", "RadioScience"]
+solver         = "LambertThenDiffCorrect"
+departure_epoch = "2026-09-15T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 200.0
+tof_days_max          = 700.0
+grid_resolution       = 50
+departure_window_days = 60.0
+
+[trajectory.capture]
+target_orbit_radius_m = 3000.0
+terminator_orbit      = true   # orbital pole aligned with body->Sun; spacecraft always at ~90 deg phase
+
+# Per-phase orbit radius overrides — match GNC/AutonomousNavigation proximity_mission
+# target_r_m() values so the regression test can do a direct cross-comparison.
+[trajectory.per_phase_radii]
+CloseOrbit  = 900.0
+Flyover     = 500.0
+ScienceHold = 900.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter  = "EKF"
+pointing_mode      = "Nadir"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-10
+atol             = 1.0e-8
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/bennu_sample_return/"

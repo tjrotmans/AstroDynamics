@@ -1,0 +1,66 @@
+=== WSB Ballistic Lunar Capture — Transfer Candidates ===
+
+Method  : Sousa-Silva 2018 — Σ1 Poincaré section at x = 0.75
+C_L1    = 3.188388   C_L2 = 3.172200
+r_Hill  = 0.15942 nd  = 61282 km
+
+--- Candidate 1 ---
+  IC at Σ1        : y = -0.00949  ẏ = +0.12532
+  C margin (L1)   : 0.0180  →  C_inject = 3.170388
+  capture time    : 24.710 nd  = 107.30 days
+  max interval    : 24.710 nd  = 107.30 days
+  Hill entries    : 1
+  min r_Moon      : 0.01454 nd  = 3852.3 km alt
+  Earth-reachable : false  (min r_Earth = 0.3036 nd = 116720 km)
+  TLI ΔV         : 2.9631 nd  =  3.0358 km/s  (r_park = 378 km alt)
+  Best θ @ Σ1    : not found in 720-point sweep (arc apogee just short of Σ1; Lambert targeting needed)
+  score           : 24.6955
+
+--- Candidate 2 ---
+  IC at Σ1        : y = +0.00316  ẏ = +0.07975
+  C margin (L1)   : 0.0130  →  C_inject = 3.175388
+  capture time    : 24.655 nd  = 107.06 days
+  max interval    : 24.655 nd  = 107.06 days
+  Hill entries    : 1
+  min r_Moon      : 0.00050 nd  = -1546.9 km alt
+  Earth-reachable : false  (min r_Earth = 0.2257 nd = 86753 km)
+  TLI ΔV         : 2.9628 nd  =  3.0356 km/s  (r_park = 378 km alt)
+  Best θ @ Σ1    : not found in 720-point sweep (arc apogee just short of Σ1; Lambert targeting needed)
+  score           : 24.6545
+
+--- Candidate 3 ---
+  IC at Σ1        : y = -0.05380  ẏ = +0.14051
+  C margin (L1)   : 0.0180  →  C_inject = 3.170388
+  capture time    : 24.665 nd  = 107.11 days
+  max interval    : 24.665 nd  = 107.11 days
+  Hill entries    : 1
+  min r_Moon      : 0.01495 nd  = 4010.2 km alt
+  Earth-reachable : false  (min r_Earth = 0.2478 nd = 95250 km)
+  TLI ΔV         : 2.9631 nd  =  3.0358 km/s  (r_park = 378 km alt)
+  Best θ @ Σ1    : not found in 720-point sweep (arc apogee just short of Σ1; Lambert targeting needed)
+  score           : 24.6500
+
+--- Candidate 4 ---
+  IC at Σ1        : y = -0.01582  ẏ = +0.14051
+  C margin (L1)   : 0.0100  →  C_inject = 3.178388
+  capture time    : 24.630 nd  = 106.96 days
+  max interval    : 24.630 nd  = 106.96 days
+  Hill entries    : 1
+  min r_Moon      : 0.00439 nd  = -50.4 km alt
+  Earth-reachable : false  (min r_Earth = 0.3166 nd = 121684 km)
+  TLI ΔV         : 2.9627 nd  =  3.0354 km/s  (r_park = 378 km alt)
+  Best θ @ Σ1    : not found in 720-point sweep (arc apogee just short of Σ1; Lambert targeting needed)
+  score           : 24.6256
+
+--- Candidate 5 ---
+  IC at Σ1        : y = +0.00316  ẏ = +0.10253
+  C margin (L1)   : 0.0100  →  C_inject = 3.178388
+  capture time    : 24.625 nd  = 106.93 days
+  max interval    : 24.625 nd  = 106.93 days
+  Hill entries    : 1
+  min r_Moon      : 0.00296 nd  = -599.8 km alt
+  Earth-reachable : false  (min r_Earth = 0.1948 nd = 74876 km)
+  TLI ΔV         : 2.9627 nd  =  3.0354 km/s  (r_park = 378 km alt)
+  Best θ @ Σ1    : not found in 720-point sweep (arc apogee just short of Σ1; Lambert targeting needed)
+  score           : 24.6220
+

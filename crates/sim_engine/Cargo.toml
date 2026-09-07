@@ -1,0 +1,17 @@
+[package]
+name = "sim_engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+orbital_math       = { path = "../orbital_math" }
+orbital_models     = { path = "../orbital_models" }
+attitude_control   = { path = "../attitude_control" }
+ephemeris          = { path = "../ephemeris" }
+body_models        = { path = "../body_models" }
+hardware_catalog   = { path = "../hardware_catalog" }
+trajectory_solver  = { path = "../trajectory_solver" }
+nalgebra           = { workspace = true }
+ode_solvers        = "0.4"
+rand               = "~0.8"
+rand_distr         = "0.4"

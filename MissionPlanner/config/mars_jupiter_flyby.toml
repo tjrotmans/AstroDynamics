@@ -1,0 +1,112 @@
+# Mars-to-Jupiter Flyby — Phase 8d verification case
+#
+# Purpose: first non-Earth-departure example, demonstrating
+# `[trajectory].departure_body` is now actually honored (Phase 8d, fixed
+# previously this field was silently ignored, see the design notes).
+# Mars departs ~3.7 AU closer to Jupiter than Earth does, so this is also a
+# physical sanity check: C3 should come out well below the Earth-departure
+# case in jupiter_flyby.toml (90.5 km²/s²), not higher or unchanged — a
+# silent fallback-to-Earth bug would otherwise be invisible (Mars and Earth
+# are different enough orbits that "wrong body" wouldn't pass unnoticed).
+#
+# Window note: demo/example only, NOT independently re-verified across a
+# full synodic period the way mars_flyby.toml/jupiter_flyby.toml were —
+# departure window is wide (800 days, ~= one Earth-Mars... no, one
+# Mars-Jupiter synodic period, ~816 days by 1/(1/1.881-1/11.86) years) so
+# the grid search has to find the real optimum inside the box, same
+# "verify the search finds it" approach jupiter_flyby.toml used originally.
+# Found: departure +196.6 days from anchor, TOF 1037.3 days, C3 34.36 km²/s²
+# — well below Jupiter's Earth-departure C3 (90.5), exactly the expected
+# direction, and in the right ballpark vs. the idealized Hohmann estimate
+# for r1=1.524 AU/r2=5.2 AU (a_t=3.36 AU, TOF~1126 days per vis-viva).
+# Verified geometrically: departure point sampled at 1.46 AU (Mars range
+# 1.38-1.67 AU), arrival at 5.45 AU (Jupiter range 4.95-5.46 AU) — not
+# Earth's ~1 AU, confirming the departure body is actually Mars, not a
+# silent fallback.
+
+[mission]
+name      = "Mars-Jupiter Flyby"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name      = "Jupiter"
+ephemeris = "Anise"
+# mu_m3s2/radius_m/gravity_model/atmosphere resolved from the body_models
+# catalog by name (Phase 5) — Jupiter is already in it.
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 400.0
+dry_mass_kg        = 320.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [1.0, 1.0, 1.2]
+inertia_diag_kgm2  = [60.0, 60.0, 40.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[[spacecraft.hardware]]
+type                = "OpNavCamera"
+bearing_noise_mrad  = 0.1
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "GridSearch"
+departure_epoch = "2026-01-01T00:00:00 UTC"   # arbitrary anchor — demo only, see window note above
+departure_body  = "Mars"
+
+[trajectory.departure]
+# Phase 8e: explicit Mars parking orbit the escape burn is sized from,
+# instead of the default heuristic (body_radius + 200 km = 3596.2 km).
+# 400 km altitude — comparable to a real low Mars science orbit (e.g.
+# MAVEN's ~150 km periapsis is lower still; this is a round, demonstrative
+# value, not a specific mission's actual parking orbit).
+parking_orbit_radius_m = 3_796_200.0
+
+[trajectory.cruise]
+tof_days_min          = 800.0
+tof_days_max          = 1500.0
+grid_resolution       = 60
+departure_window_days = 800.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 100
+output_dir       = "out/mars_jupiter_flyby/"

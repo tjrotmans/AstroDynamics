@@ -1,0 +1,133 @@
+# Custom Asteroid — 433 Eros Proximity Orbit
+# Demonstrates the custom body capability: all physical parameters supplied
+# manually in the TOML. Eros is also in the body_models catalog (added Phase 5)
+# but is specified explicitly here to show how any user-defined body works —
+# simply supply name + mu_m3s2 + radius_m + gravity_model + atmosphere.
+#
+# 433 Eros mission profile (NEAR Shoemaker heritage):
+#   Orbit altitude: 35 km above Eros mean radius (conservative for safety near
+#   the lumpy J2 = 0.11 gravity field; low-altitude approach would be < 10 km)
+#   Science orbit radius: 8 416 + 35 000 = 43 416 m
+#
+# Eros gravity is highly non-spherical (J2 = 0.11, J4 = 0.039); J2J3J4
+# should be the minimum gravity model. True proximity ops require full
+# spherical harmonic (degree/order 4+) for safe navigation — note for Phase 5.
+
+[mission]
+name      = "Eros Proximity Orbit"
+objective = "Orbit"
+
+# ── Target body — fully specified (no catalog lookup required) ────────────────
+
+[target_body]
+name          = "433 Eros"
+mu_m3s2       = 4.463e5        # Yeomans et al. 2000 (Science 289, 2085)
+radius_m      = 8_416.0        # Thomas et al. 2002 (Icarus 155, 18)
+gravity_model = "J2J3J4"
+j2            =  1.126e-1      # Miller et al. 2002 (Icarus 155, 3) — NEAR Shoemaker gravity
+j3            = -3.01e-2
+j4            =  3.86e-2
+atmosphere    = "None"
+ephemeris     = "Keplerian"
+
+# JPL Small-Body Database elements for 433 Eros
+# Solution: JPL #297 (osculating, heliocentric ecliptic J2000)
+# Epoch: 2024-Jun-25.0 TDB (JD 2460486.5)
+# Source: https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html  (body: 433)
+[target_body.keplerian_orbit]
+sma_au           = 1.4578
+eccentricity     = 0.2229
+inclination_deg  = 10.829
+raan_deg         = 304.32
+aop_deg          = 178.66
+mean_anomaly_deg = 289.8       # approx. 2024-Jun-25 (recomputed from JPL period)
+epoch_jd         = 2460486.5
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 800.0
+dry_mass_kg        = 600.0
+propellant_mass_kg = 200.0
+bus_dims_m         = [2.0, 2.0, 0.8]
+inertia_diag_kgm2  = [200.0, 200.0, 300.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.12
+inertia_kgm2   = 0.012
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 1.0
+count        = 12
+moment_arm_m = 1.0
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+[[spacecraft.hardware]]
+type                    = "OpNavCamera"
+bearing_noise_mrad      = 0.05
+angular_size_noise_mrad = 0.1
+
+[[spacecraft.hardware]]
+type          = "Lidar"
+range_noise_m = 1.0
+max_range_m   = 50_000.0
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 5.0
+efficiency = 0.28
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise", "Capture", "Proximity"]
+solver          = "LambertThenDiffCorrect"
+departure_epoch = "2026-10-15T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 150.0
+tof_days_max          = 500.0
+grid_resolution       = 60
+departure_window_days = 90.0
+
+[trajectory.capture]
+target_orbit_radius_m = 43_416.0   # 35 km altitude above 8 416 m mean radius
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter        = "EKF"
+pointing_mode             = "Nadir"
+attitude_controller       = "ReactionWheelPD"
+position_accuracy_req_m   = 50.0
+velocity_accuracy_req_mps = 0.005
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/eros_orbit/"

@@ -1,0 +1,105 @@
+# Venus Orbit Insertion Mission
+# Combined interplanetary-injection + capture stage, biprop, 300 km circular orbit.
+# Demonstrates the DiffCorrection solver (Newton TOF targeting against a ΔV budget).
+#
+# Direct heliocentric departure + Venus orbit capture costs ~6.8 km/s at the verified
+# window below (see dv_total at the porkchop minimum) — this design stage charges the
+# full departure + arrival ΔV to the spacecraft's own propulsion (no launch-vehicle C3
+# credit, same convention as mars_orbit.toml), so the mass ratio here is sized like a
+# monolithic kick-stage-plus-orbiter rather than a payload-only spacecraft.
+
+[mission]
+name      = "Venus Orbit Insertion"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name       = "Venus"
+mu_m3s2    = 3.24858592e14          # IAU/JPL Venus GM (DE440)
+radius_m   = 6_051_800.0
+gravity_model = "J2"
+atmosphere    = "None"               # thick atmosphere exists but capture-orbit altitude is well above it
+j2 = 4.458e-6                        # Konopliv et al. 1999 (Magellan)
+ephemeris  = "Anise"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 4280.0
+dry_mass_kg        = 380.0
+propellant_mass_kg = 3900.0
+bus_dims_m         = [1.6, 1.6, 0.6]
+inertia_diag_kgm2  = [110.0, 110.0, 160.0]
+srp_model          = "Cannonball"
+# Phase 8c: AtlasV401's catalog data tops out well below this spacecraft's
+# 4280 kg wet mass at the C3 this example converges to (~22 km²/s²) — the
+# check correctly reports infeasible. Real finding, not a bug: this example's
+# spacecraft was sized (pre-8c) only to exceed the old, wrong dep+arr-summed
+# budget, never checked against a real launch vehicle's direct-ascent
+# capability. A real mission this size at this C3 would need a bigger
+# vehicle (Atlas V551/Falcon Heavy-class) than this catalog has verified
+# data for yet.
+launch_vehicle     = "AtlasV401"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 320.0
+thrust_n = 440.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.08
+inertia_kgm2   = 0.008
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 4.0
+count        = 8
+moment_arm_m = 0.8
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise", "Capture"]
+solver          = "DiffCorrection"
+departure_epoch = "2026-06-10T00:00:00 UTC"   # verified porkchop minimum, de440s.bsp scan
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 120.0
+tof_days_max          = 260.0
+grid_resolution       = 80
+departure_window_days = 20.0         # multi-start seeds bracketing the verified minimum
+
+[trajectory.capture]
+target_orbit_radius_m = 6_351_800.0   # 300 km altitude above Venus surface
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 100
+output_dir       = "out/venus_orbit/"

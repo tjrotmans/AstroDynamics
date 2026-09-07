@@ -1,0 +1,114 @@
+# Apophis Proximity Orbit — Phase 3 GNC design stage test case.
+# 1000 kg spacecraft (Bennu-class bus reused as a representative small-body
+# orbiter), 500 m orbit radius around 99942 Apophis. Exercises disturbance
+# torque sizing, reaction wheel/RCS sizing, OpNav grade selection, and EKF
+# state-dimension sizing from MissionPlanner/src/gnc_design.rs.
+#
+# Solver is Hohmann (analytical, circular/coplanar) — it depends only on
+# sma_au below, not on epoch or true anomaly, so it sidesteps any need for an
+# ANISE-verified transfer-window date (Apophis has no DE440S coverage anyway).
+
+[mission]
+name      = "Apophis Proximity Orbit"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+# mu_m3s2 / radius_m / gravity_model / atmosphere omitted on purpose: resolved
+# from the body_models::TargetBody::apophis() catalog preset by name (Brozović
+# et al. 2018 mu, Pravec et al. 2014 radius — see crates/body_models/src/body.rs).
+# Any of these fields can still be given explicitly here to override the preset.
+name      = "Apophis"
+ephemeris = "Keplerian"
+
+# Representative JPL Small-Body Database osculating elements for 99942 Apophis.
+# Only sma_au feeds the Hohmann sizing estimate below — eccentricity/inclination/
+# raan/aop/mean_anomaly/epoch are illustrative placeholders (not re-verified
+# against a live ephemeris query) and do not affect the result.
+[target_body.keplerian_orbit]
+sma_au           = 0.9224
+eccentricity      = 0.1914
+inclination_deg   = 3.341
+raan_deg          = 203.99
+aop_deg           = 126.62
+mean_anomaly_deg  = 211.6
+epoch_jd          = 2460000.5
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 1000.0
+dry_mass_kg        = 800.0
+propellant_mass_kg = 200.0
+bus_dims_m         = [2.0, 2.0, 0.63]
+inertia_diag_kgm2  = [366.67, 366.67, 666.67]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.12
+inertia_kgm2   = 0.012
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 1.0
+count        = 12
+moment_arm_m = 1.0
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+model     = "generic"
+noise_rad = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+[[spacecraft.hardware]]
+type                     = "OpNavCamera"
+bearing_noise_mrad       = 0.1
+angular_size_noise_mrad  = 0.2
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 4.0
+efficiency = 0.29
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases         = ["Cruise", "Capture", "Proximity"]
+solver         = "Hohmann"
+departure_body = "Earth"
+
+[trajectory.capture]
+target_orbit_radius_m = 500.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter        = "EKF"
+pointing_mode             = "Nadir"
+attitude_controller       = "ReactionWheelPD"
+position_accuracy_req_m   = 10.0
+velocity_accuracy_req_mps = 0.001
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/apophis_orbit/"

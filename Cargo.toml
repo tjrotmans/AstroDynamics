@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "OptimizationProblems",
+    "crates/orbital_math",
+    "crates/orbital_models",
+    "crates/attitude_control",
+    "crates/ephemeris",
+    "crates/crtbp",
+    "crates/body_models",
+    "crates/trajectory_solver",
+    "crates/hardware_catalog",
+    "crates/sim_engine",
+    "OptimizationProblems/examples/drag_sail_trajectory",
+    "OptimizationProblems/examples/solar_sail_trajectory",
+    "OptimizationProblems/examples/interplanetary_transfer",
+    "AstroProbs/Artemis",
+    "AstroProbs/LunarTrajectories",
+    "GNC/AutonomousNavigation",
+    "MissionPlanner",
+]
+
+[profile.release]
+debug = true
+
+[workspace.dependencies]
+nalgebra = "~0.32"
+maths-traits = "~0.2"
+
+[patch.crates-io]
+numerical-integration = { git = "https://github.com/pwnorbitals/numerical-integration.git" }

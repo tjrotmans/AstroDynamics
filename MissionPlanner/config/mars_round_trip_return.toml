@@ -1,0 +1,129 @@
+# Mars round trip — RETURN leg (Mars -> Earth)
+# Second half of the Phase 8l basic round-trip example. Companion to
+# mars_round_trip_outbound.toml (Earth -> Mars, identical setup to the
+# Phase 8b/8g reference case mars_flyby.toml).
+#
+# Demonstrates that a round trip needs no v∞-flyby-matching or multi-leg
+# chaining machinery (that's Phase 9's job, for genuine multi-body tours) —
+# it's just two independent single-leg Lambert problems Phase 7 already
+# solves, run twice: outbound departs Earth/targets Mars, this one departs
+# Mars (`departure_body = "Mars"`, generalized in Phase 8d)/targets Earth
+# (`[target_body] name = "Earth"`, fields auto-resolved from the body
+# catalog per `TargetBodyConfig::deserialize`, same as earth_leo.toml).
+#
+# IMPORTANT — what the 339-day gap between legs actually is: a time offset
+# between two *independent* flyby Lambert solves, nothing more. The outbound
+# leg's objective is Flyby (hyperbolic passage, v∞ = 2730 m/s at Mars) — it
+# does NOT capture into Mars orbit, and no insertion burn is computed or
+# charged anywhere. This leg's escape-burn ΔV assumes departure from a Mars
+# parking orbit (default-heuristic radius, see below), but the spacecraft
+# was never actually inserted into one — there is no dynamically modeled
+# "stay in orbit," no stationkeeping, and no capture burn in this example.
+# This intentionally matches Phase 8l's scope (two single-leg Lambert
+# problems, run twice) — it is NOT a physically closed loop, and the
+# infeasibility finding below is, if anything, an *understatement*: a truly
+# consistent capture-then-escape budget would also need to pay for Mars
+# orbit insertion, which isn't charged at all here.
+#
+# Window note: found via config/mars_round_trip_return_scan.toml — an
+# 800-day-wide scan (> 1 Earth-Mars synodic period, ~780 days) starting 60
+# days after the outbound leg's arrival (2027-08-18T22:28 UTC, from
+# mars_flyby.toml's verified best_arc.csv), as a nominal gap between the two
+# independent legs (see note above — not a modeled stay).
+# Wide scan found: departure 2028-09-05T23:41:46 UTC, TOF 339.24 days,
+# C3 6.1482 km²/s². This config re-verifies that point with a narrow window
+# centered on it (same "wide scan, then narrow and re-verify" precedent as
+# mars_flyby.toml's own window note) — re-converges to TOF 339.11 days,
+# C3 6.1484 km²/s², departure 2028-09-05T05:28:06 UTC: matches the wide
+# scan's independently-found minimum closely, confirming a real local
+# minimum rather than an artifact of where the wide scan's box happened to
+# land.
+#
+# Real finding, left visible rather than hidden (same precedent as
+# venus_orbit.toml/mars_jupiter_flyby.toml): this 400 kg probe's monoprop
+# tank (ΔV budget ~481 m/s) cannot perform the ~2.0 km/s Mars-departure
+# escape burn the return leg requires — onboard propulsion alone is nowhere
+# near enough for a Mars ascent + departure stage. This is physically
+# correct, not a bug: real Mars Sample Return architectures use a dedicated
+# Mars Ascent Vehicle for exactly this reason, not the cruise stage's own
+# tank. The example is kept as an honest demonstration of the departure-body
+# generalization (Phase 8d) and the launch-vehicle-vs-onboard-propellant
+# split (Phase 8c) correctly catching an infeasible configuration, not a
+# claim that this spacecraft could actually fly this mission.
+
+[mission]
+name      = "Mars Round Trip — Return"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name      = "Earth"
+ephemeris = "Anise"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 400.0
+dry_mass_kg        = 320.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [1.0, 1.0, 1.2]
+inertia_diag_kgm2  = [60.0, 60.0, 40.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[[spacecraft.hardware]]
+type                = "OpNavCamera"
+bearing_noise_mrad  = 0.1
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2028-09-05T23:41:46 UTC"   # verified return-leg minimum, see header note
+departure_body  = "Mars"
+
+[trajectory.cruise]
+tof_days_min          = 270.0
+tof_days_max          = 410.0
+grid_resolution       = 80
+departure_window_days = 120.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/mars_round_trip_return/"

@@ -1,0 +1,110 @@
+# Earth → Venus → Jupiter flyby — 2032/33 departure window
+#
+# This config targets the next good EVJ resonance window after the 2030
+# window (which has poor Earth-Venus-Jupiter phase alignment).  Jupiter's
+# synodic period is ~13 months, so each year shifts the geometry; the
+# 2032-2033 window has Jupiter better positioned for a Venus gravity-assist
+# pump into a Jupiter-crossing orbit.
+#
+# The departure_window_days = 540 (±9 months) lets the DE optimizer find
+# the exact best departure date within that range autonomously.
+
+[mission]
+name      = "EVJ Flyby 2033"
+objective = "Flyby"
+
+[target_body]
+name          = "Jupiter"
+mu_m3s2       = 1.266865349e17     # Jacobson et al. 2013 (JUP310)
+radius_m      = 71_492_000.0
+gravity_model = "PointMass"
+atmosphere    = "None"
+ephemeris     = "Anise"
+
+[spacecraft]
+mass_kg            = 1200.0
+dry_mass_kg        = 800.0
+propellant_mass_kg = 400.0
+bus_dims_m         = [2.0, 2.0, 1.0]
+inertia_diag_kgm2  = [200.0, 200.0, 300.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "AtlasV551Star48"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 320.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2032-06-01T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min    = 200.0
+tof_days_max    = 1400.0
+grid_resolution = 40
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/evj_2033/"
+
+[optimization]
+objective              = "MatchTargetDistance"
+method                 = "MGA"
+departure_body         = "Earth"
+target_body            = "Jupiter"
+departure_epoch        = "2032-06-01T00:00:00 UTC"
+departure_window_days  = 540.0      # ±9 months — wide enough to find the synodic peak
+dv_min_ms              = 0.0
+dv_max_ms              = 15000.0
+max_coast_days         = 1400.0
+
+[optimization.force_model]
+central_body_gravity  = "PointMass"
+third_bodies          = ["Venus", "Jupiter"]
+include_srp           = false
+integrator            = "DormandPrince45"
+rtol                  = 1.0e-9
+atol                  = 1.0e-7
+
+[optimization.mga]
+flyby_bodies          = ["Venus"]
+# Leg 1: Earth → Venus (wider range than 2030 config to cover more resonances)
+# Leg 2: Venus → Jupiter
+leg_tof_days          = [[60.0, 300.0], [300.0, 1400.0]]
+departure_vinf_max_ms = 12000.0     # slightly higher cap — longer coast legs need more C3
+flyby_min_periapsis_m = 6_152_000.0
+arrival_vinf_max_ms   = 35000.0
+de_f_weight           = 0.8
+de_cr                 = 0.9
+de_population_size    = 400
+de_generations        = 1500
+de_restarts           = 5

@@ -1,0 +1,133 @@
+# Venus → Saturn flyby via automatic Tisserand beam-search sequence discovery.
+#
+# The [optimization.mga.sequence_search] section tells the optimizer to
+# automatically find intermediate flyby bodies from the candidate pool rather
+# than the user specifying flyby_bodies explicitly. The beam search uses the
+# Tisserand graph to prune the discrete sequence space; the inner DE optimizer
+# then runs on each top-ranked candidate sequence.
+#
+# Expected to discover sequences like Venus → Earth → Jupiter → Saturn, which
+# is the VEJS-class trajectory used for Cassini and Huygens (Cassini departed
+# Earth not Venus, but the VEJS chain is energetically optimal from Venus).
+#
+# Reference window: 2030–2032 when Saturn and Jupiter are well-positioned
+# relative to Venus and Earth for multi-flyby sequences.
+
+[mission]
+name      = "Venus→Saturn Auto-MGA"
+objective = "Flyby"
+
+[target_body]
+name          = "Saturn"
+mu_m3s2       = 3.793_119_0e16   # Jacobson et al. 2006 (SAT252)
+radius_m      = 60_268_000.0
+gravity_model = "PointMass"
+atmosphere    = "None"
+ephemeris     = "Anise"
+
+[spacecraft]
+mass_kg            = 1200.0
+dry_mass_kg        = 700.0
+propellant_mass_kg = 500.0
+bus_dims_m         = [2.0, 2.0, 1.0]
+inertia_diag_kgm2  = [200.0, 200.0, 300.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 320.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2030-06-01T00:00:00 UTC"
+departure_body  = "Venus"
+
+[trajectory.cruise]
+tof_days_min    = 300.0
+tof_days_max    = 3000.0
+grid_resolution = 40
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/venus_saturn_auto/"
+
+[optimization]
+objective             = "MatchTargetDistance"
+method                = "MGA"
+departure_body        = "Venus"
+target_body           = "Saturn"
+departure_epoch       = "2030-06-01T00:00:00 UTC"
+departure_window_days = 180.0    # search ±3 months around reference
+dv_min_ms             = 0.0
+dv_max_ms             = 15000.0
+max_coast_days        = 3000.0
+
+[optimization.force_model]
+central_body_gravity = "PointMass"
+third_bodies         = []
+include_srp          = false
+integrator           = "DormandPrince45"
+rtol                 = 1.0e-9
+atol                 = 1.0e-7
+
+[optimization.mga]
+# flyby_bodies is ignored when sequence_search is set — auto-discovered below.
+flyby_bodies          = []
+# Bounds are indexed by ARRAY POSITION (mga.rs's leg_tof_days.get(k)), not by
+# leg role — every position must be uniformly wide enough to cover whichever
+# real leg lands there, since that depends on the discovered sequence length
+# (found on earth_neptune_auto.toml; this config was fixed
+# after the original narrow per-position bounds — [60,400] at
+# position 0 — made even the direct Venus→Saturn baseline infeasible
+# ballistically and forced 12–28 km/s of DSMs in the 9v-vii seed sweep).
+leg_tof_days = [
+    [60.0, 3000.0],
+    [60.0, 3000.0],
+    [60.0, 3000.0],
+    [60.0, 3000.0],
+    [60.0, 3000.0],
+]
+departure_vinf_max_ms = 8000.0    # realistic for a Venus departure
+flyby_min_periapsis_m = 6_152_000.0  # Venus radius × ~1.017
+arrival_vinf_max_ms   = 30000.0
+de_f_weight           = 0.8
+de_cr                 = 0.9
+de_population_size    = 400
+de_generations        = 1500
+de_restarts           = 3
+
+[optimization.mga.sequence_search]
+# Pool of bodies to consider as intermediate flybys.
+candidate_bodies  = ["Earth", "Mars", "Jupiter"]
+max_legs          = 5      # up to 4 intermediate flybys + final leg to Saturn
+beam_width        = 25     # top-25 partial sequences kept at each depth level
+max_sequences_to_optimize = 8   # run full DE on top 8 Tisserand-ranked sequences
+vinf_departure_estimate_ms = 3000.0  # approximate Venus departure v∞ for beam seeding

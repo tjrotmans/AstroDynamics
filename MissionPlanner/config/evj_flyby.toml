@@ -1,0 +1,152 @@
+# Earth → Jupiter, blind auto-discovery (corrected).
+#
+# Originally hardcoded `flyby_bodies = ["Venus"]` — i.e. the optimizer was
+# TOLD the answer and only tuned continuous parameters around it, not a real
+# test of "given only departure body + target body, does it find its own
+# path." Converted to [optimization.mga.sequence_search]: the Tisserand beam
+# search now discovers the flyby sequence itself from a candidate pool, then
+# the same DE optimizer runs on the top-ranked candidates — matching the
+# published two-level MGA-DSM architecture (discrete sequence discovery, then
+# continuous optimization of the best sequence(s)), not a fixed-sequence
+# shortcut. See earth_neptune_auto.toml / venus_saturn_auto.toml for the same
+# pattern. The one legitimate exception to this rule is cassini2_gtop.toml,
+# which reproduces a published GTOP benchmark that itself specifies a fixed
+# sequence as a given input — not applicable here, since this is our own
+# exploratory test, not a literature reproduction.
+#
+# Reference window: 2029–2031 Jupiter opposition approach — unchanged from the
+# original config, kept only as a plausible departure window, not a hint about
+# which bodies to visit.
+
+[mission]
+name      = "EVJ Flyby"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name          = "Jupiter"
+mu_m3s2       = 1.266865349e17     # Jacobson et al. 2013 (JUP310)
+radius_m      = 71_492_000.0
+gravity_model = "PointMass"        # heliocentric transfer — body fidelity irrelevant
+atmosphere    = "None"
+ephemeris     = "Anise"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 1200.0
+dry_mass_kg        = 800.0
+propellant_mass_kg = 400.0
+bus_dims_m         = [2.0, 2.0, 1.0]
+inertia_diag_kgm2  = [200.0, 200.0, 300.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "AtlasV551Star48"   # high-C3 vehicle for outer-planet departure
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 320.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+# Phase 9 MGA uses [optimization] for the actual solver config; [trajectory]
+# carries the capture target radius only if [mission].objective = "Orbit".
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2030-01-01T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 200.0
+tof_days_max          = 1200.0
+grid_resolution       = 40
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/evj_flyby/"
+
+# ── Phase 9 MGA optimisation ─────────────────────────────────────────────────
+
+[optimization]
+objective              = "MatchTargetDistance"
+method                 = "MGA"
+departure_body         = "Earth"
+target_body            = "Jupiter"
+departure_epoch        = "2030-01-01T00:00:00 UTC"
+departure_window_days  = 365.0      # search ±6 months around reference epoch
+dv_min_ms              = 0.0
+dv_max_ms              = 15000.0    # not directly used by MGA (departure v∞ is free)
+max_coast_days         = 1200.0
+
+[optimization.force_model]
+central_body_gravity  = "PointMass"
+third_bodies          = ["Venus", "Jupiter"]
+include_srp           = false
+integrator            = "DormandPrince45"
+rtol                  = 1.0e-9
+atol                  = 1.0e-7
+
+[optimization.mga]
+# flyby_bodies is ignored when sequence_search is set — auto-discovered below.
+flyby_bodies          = []
+# Bounds are indexed by ARRAY POSITION (mga.rs's leg_tof_days.get(k)), not by
+# "is this the leg to Jupiter" — found via the same bug on
+# earth_neptune_auto.toml (every position must be uniformly wide enough to
+# cover whichever real leg lands there, since that depends on the discovered
+# sequence length, not position).
+leg_tof_days = [
+    [80.0, 1200.0],
+    [80.0, 1200.0],
+    [80.0, 1200.0],
+    [80.0, 1200.0],
+]
+departure_vinf_max_ms = 10000.0     # ≈ C3 100 km²/s²; realistic for EVJ
+flyby_min_periapsis_m = 3_500_000.0 # ~100 km above Mars's surface (smallest candidate body)
+arrival_vinf_max_ms   = 30000.0     # Jupiter flybys are naturally fast
+de_f_weight           = 0.8
+de_cr                 = 0.9
+de_population_size    = 150   # reduced from 300 for a faster exploratory pass
+de_generations        = 400   # reduced from 1000
+de_restarts           = 2     # reduced from 4
+
+[optimization.mga.sequence_search]
+# Realistic inner-solar-system candidates for an Earth→Jupiter transfer —
+# Venus (classic VEGA/VEEGA-style assist), Mars, and Earth itself (repeated
+# Earth flybys, EEGA-style, per real precedent e.g. Rosetta).
+candidate_bodies  = ["Venus", "Earth", "Mars"]
+max_legs          = 4      # up to 3 intermediate flybys + final leg to Jupiter
+beam_width        = 20
+max_sequences_to_optimize = 3   # reduced from 6
+vinf_departure_estimate_ms = 5000.0   # ~ C3 20-25 km^2/s^2, matching the original rough expectation

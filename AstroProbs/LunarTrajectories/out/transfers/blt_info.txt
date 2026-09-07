@@ -1,0 +1,62 @@
+=== Belbruno Lunar Transfer (BCR4BP) — Top Candidates ===
+
+Method  : BCR4BP — Earth parking orbit injection + Sun gravity
+r_park  = 0.01756 nd  (378 km alt)
+C_L2    = 3.172200   C_L1 = 3.188388
+r_Hill  = 0.15942 nd  = 61282 km
+
+--- Candidate 1 ---
+  θ_inject       : 98.00°
+  θ_sun (at TLI) : 120.00°
+  C_inject       : 1.000000
+  TLI ΔV         : 3.0802 nd  =  3.1558 km/s
+  capture time   : 6.800 nd  =  29.53 days
+  max interval   : 2.390 nd  =  10.38 days
+  Hill entries   : 5
+  min r_Moon     : 0.00600 nd  =  570.8 km alt
+  score          : 6.7940
+
+--- Candidate 2 ---
+  θ_inject       : 330.00°
+  θ_sun (at TLI) : 170.00°
+  C_inject       : 1.000000
+  TLI ΔV         : 3.0680 nd  =  3.1433 km/s
+  capture time   : 4.520 nd  =  19.63 days
+  max interval   : 1.190 nd  =  5.17 days
+  Hill entries   : 7
+  min r_Moon     : 0.00254 nd  =  -759.5 km alt
+  score          : 4.5175
+
+--- Candidate 3 ---
+  θ_inject       : 202.00°
+  θ_sun (at TLI) : 60.00°
+  C_inject       : 1.500000
+  TLI ΔV         : 3.0661 nd  =  3.1413 km/s
+  capture time   : 4.480 nd  =  19.45 days
+  max interval   : 1.180 nd  =  5.12 days
+  Hill entries   : 5
+  min r_Moon     : 0.00630 nd  =  685.9 km alt
+  score          : 4.4737
+
+--- Candidate 4 ---
+  θ_inject       : 358.00°
+  θ_sun (at TLI) : 210.00°
+  C_inject       : 2.500000
+  TLI ΔV         : 2.9951 nd  =  3.0686 km/s
+  capture time   : 4.130 nd  =  17.93 days
+  max interval   : 0.980 nd  =  4.26 days
+  Hill entries   : 7
+  min r_Moon     : 0.00548 nd  =  370.0 km alt
+  score          : 4.1245
+
+--- Candidate 5 ---
+  θ_inject       : 16.00°
+  θ_sun (at TLI) : 60.00°
+  C_inject       : 2.500000
+  TLI ΔV         : 2.9956 nd  =  3.0691 km/s
+  capture time   : 4.010 nd  =  17.41 days
+  max interval   : 0.400 nd  =  1.74 days
+  Hill entries   : 13
+  min r_Moon     : 0.00650 nd  =  760.7 km alt
+  score          : 4.0035
+

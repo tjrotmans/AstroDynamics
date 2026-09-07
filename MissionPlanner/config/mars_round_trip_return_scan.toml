@@ -1,0 +1,82 @@
+# Mars round-trip — return-leg WINDOW SCAN (not a canonical example itself).
+#
+# Phase 8l: finds a real, ANISE-verified Mars->Earth departure window for the
+# return leg of the round-trip example, the same way mars_flyby.toml's
+# Earth->Mars window was originally found (scan a window wider than one
+# synodic period, then narrow to the verified minimum). Once the minimum is
+# found here, it gets hardcoded into mars_round_trip_return.toml's narrow
+# window — this scan config itself is not part of the example library.
+#
+# Search starts 60 days after the outbound leg's arrival
+# (mars_flyby.toml/mars_round_trip_outbound.toml: arr_jd = 2461636.436709,
+# i.e. 2027-08-18T22:28 UTC) to allow a short stay at Mars, then spans 800
+# days (> 1 Earth-Mars synodic period, ~780 days) to guarantee the window
+# contains a true minimum, not just the best point in an arbitrarily-placed
+# box.
+
+[mission]
+name      = "Mars Round Trip — Return Scan"
+objective = "Flyby"
+
+[target_body]
+name      = "Earth"
+ephemeris = "Anise"
+
+[spacecraft]
+mass_kg            = 400.0
+dry_mass_kg        = 320.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [1.0, 1.0, 1.2]
+inertia_diag_kgm2  = [60.0, 60.0, 40.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[[spacecraft.hardware]]
+type                = "OpNavCamera"
+bearing_noise_mrad  = 0.1
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "GridSearch"
+departure_epoch = "2028-11-20T22:28:51 UTC"   # arrival + 60d stay + 400d (window midpoint) — see header note
+departure_body  = "Mars"
+
+[trajectory.cruise]
+tof_days_min          = 100.0
+tof_days_max          = 400.0
+grid_resolution       = 80
+departure_window_days = 800.0
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/mars_round_trip_return_scan/"

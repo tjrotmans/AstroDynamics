@@ -1,0 +1,21 @@
+{
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/out/**": true,
+    "**/.git/objects/**": true
+  },
+  "files.exclude": {
+    "**/target": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/out": true,
+    "**/*.csv": true,
+    "**/*.db": true
+  },
+  "rust-analyzer.files.excludeDirs": [
+    "target",
+    "out"
+  ],
+  "rust-analyzer.cachePriming.enable": false
+}

@@ -1,0 +1,142 @@
+# VEEGA: Earth → Venus → Earth → Earth → Jupiter flyby (Phase 9f-iii)
+#
+# The classic Galileo trajectory class — Venus–Earth–Earth–Gravity-Assist (VEEGA).
+# Four legs, three intermediate flybys (V, E, E): 18 parameters total
+# (4 + 2*4 + 2*3 = 18), matching the chromosome structure in mga.rs.
+# This is the standard GTOP benchmark for MGA-DSM solvers.
+#
+# Galileo (1989): launched 1989-10-18, Jupiter arrival 1995-12-07, ~6 year TOF.
+# C3 ≈ 16.4 km²/s², total DSM ΔV ≈ 900 m/s for the original window.
+# The 2030 window will yield similar energy (Jupiter synodic period ≈ 11.86 years
+# so good windows repeat; the 1989+12*1 ≈ 2001, 2013, 2025 windows bracket 2030).
+#
+# When this converges to within a factor of 2 of the Galileo reference numbers,
+# the MGA-1DSM evaluator and DE search are validated for GTOP-scale problems.
+
+[mission]
+name      = "VEEGA Flyby"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name          = "Jupiter"
+mu_m3s2       = 1.266865349e17     # Jacobson et al. 2013 (JUP310)
+radius_m      = 71_492_000.0
+gravity_model = "PointMass"
+atmosphere    = "None"
+ephemeris     = "Anise"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 2500.0         # representative Galileo-class probe
+dry_mass_kg        = 1700.0
+propellant_mass_kg = 800.0
+bus_dims_m         = [3.0, 3.0, 2.0]
+inertia_diag_kgm2  = [800.0, 800.0, 1000.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "AtlasV551Star48"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 316.0
+thrust_n = 400.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2030-01-01T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min    = 200.0
+tof_days_max    = 2500.0
+grid_resolution = 30
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/veega_flyby/"
+
+# ── Phase 9 MGA optimisation ─────────────────────────────────────────────────
+
+[optimization]
+objective             = "MatchTargetDistance"
+method                = "MGA"
+departure_body        = "Earth"
+target_body           = "Jupiter"
+departure_epoch       = "2030-01-01T00:00:00 UTC"
+departure_window_days = 365.0      # search ±6 months around reference epoch
+dv_min_ms             = 0.0
+dv_max_ms             = 15000.0
+max_coast_days        = 2500.0
+
+[optimization.force_model]
+central_body_gravity = "PointMass"
+third_bodies         = ["Venus", "Jupiter"]
+include_srp          = false
+integrator           = "DormandPrince45"
+rtol                 = 1.0e-9
+atol                 = 1.0e-7
+
+[optimization.mga]
+# Galileo-class V-E-E-J sequence: 4 legs, 3 intermediate bodies
+flyby_bodies = ["Venus", "Earth", "Earth"]
+# Bounds corrected: leg 3's old [200,600] excluded Galileo's real
+# EGA1->EGA2 leg (~731 days -- a 2-year Earth-resonant orbit, not a 1-year
+# one). Confirmed via the Phase 9w ballistic scan: even with flyby_dv_max_ms
+# loosened to 20,000 m/s, zero feasible branches landed with that leg near
+# 650-820 days under the OLD bound's neighbourhood -- the search space
+# structurally could not represent Galileo's actual trajectory shape,
+# independent of search budget or departure window. Real leg splits (JPL
+# mission record): E->V ~115d, V->E1 ~301d, E1->E2 ~731d, E2->J ~1095d.
+# Leg 1: Earth → Venus  (~115 days actual)
+# Leg 2: Venus → Earth  (~301 days actual; ~1-year Earth resonance)
+# Leg 3: Earth → Earth  (~731 days actual; ~2-year Earth resonance)
+# Leg 4: Earth → Jupiter (~1095 days actual; long Jupiter cruise)
+leg_tof_days = [
+    [100.0, 300.0],
+    [200.0, 700.0],
+    [250.0, 900.0],
+    [700.0, 2200.0],
+]
+departure_vinf_max_ms = 8000.0     # Galileo had C3 ≈ 16.4 km²/s² → v∞ ≈ 4.0 km/s; allow 2×
+flyby_min_periapsis_m = 6_471_000.0 # Earth surface (6371 km) + 100 km altitude
+arrival_vinf_max_ms   = 30000.0
+de_f_weight           = 0.8
+de_cr                 = 0.9
+de_population_size    = 600        # larger population for 18-parameter problem
+de_generations        = 2000
+de_restarts           = 4

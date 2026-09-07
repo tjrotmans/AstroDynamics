@@ -1,0 +1,563 @@
+# Captured frontend example "mercury" (via POST /api/dev/capture-preset).
+# The exact MissionConfig that produced the committed mercury-optimize.json
+# preset snapshot -- regenerate that snapshot by POSTing this config to
+# /api/optimize on a matching build.
+
+[gnc]
+attitude_controller = "ReactionWheelPD"
+navigation_filter = "EKF"
+pointing_mode = "Nadir"
+position_accuracy_req_m = 1000
+velocity_accuracy_req_mps = 1
+
+[mission]
+name = ""
+objective = "Orbit"
+
+[optimization]
+departure_body = "Earth"
+departure_epoch = "2026-11-12T12:24:49 UTC"
+departure_window_days = 90
+dv_max_ms = 20000
+dv_min_ms = 5000
+max_coast_days = 300
+method = "GA"
+objective = "MinDeltaV"
+target_body = "Mercury"
+
+[optimization.force_model]
+atol = 0.000000000001
+integrator = "Dopri5"
+rtol = 0.000000001
+
+[[optimization.force_model.bodies]]
+name = "Mercury"
+role = "CentralWhenInSoi"
+
+[[optimization.force_model.bodies]]
+name = "Sun"
+role = "AlwaysThirdBody"
+
+[[optimization.force_model.bodies]]
+name = "Venus"
+role = "AlwaysThirdBody"
+
+[[optimization.force_model.bodies]]
+name = "Earth"
+role = "CentralWhenInSoi"
+
+[optimization.ga]
+crossover_rate = 0.8
+elitism_count = 2
+generations = 30
+mutation_rate = 0.1
+population_size = 100
+
+[optimization.mga]
+flyby_bodies = []
+leg_tof_days = [[
+    30,
+    800,
+]]
+
+[simulation]
+atol = 0.000000001
+dt_meas_s = 1
+dt_truth_s = 1
+integrator = "DormandPrince45"
+monte_carlo_runs = 1
+output_dir = "./output"
+rtol = 0.000000001
+
+[spacecraft]
+bus_dims_m = [
+    2,
+    1,
+    1,
+]
+dry_mass_kg = 400
+inertia_diag_kgm2 = [
+    100,
+    100,
+    100,
+]
+mass_kg = 500
+propellant_mass_kg = 100
+srp_model = "NPlate"
+
+[[spacecraft.hardware]]
+area_m2 = 2
+height_m = 2
+normal = [
+    0,
+    1,
+    0,
+]
+position_m = [
+    1.4840069758870111,
+    0.5,
+    -0.002901931569216254,
+]
+type = "SolarPanel"
+width_m = 1
+
+[[spacecraft.hardware]]
+boresight = [
+    -1,
+    0,
+    0,
+]
+fov_deg = 20
+position_m = [
+    -1.02,
+    0.01612156779656256,
+    -0.16458492846151218,
+]
+type = "OpNavCamera"
+
+[[spacecraft.hardware]]
+beamwidth_deg = 8
+boresight = [
+    0,
+    0,
+    -1,
+]
+position_m = [
+    0.005950739006132463,
+    0.01890521543646286,
+    -0.52,
+]
+type = "CommAntenna"
+
+[[spacecraft.hardware]]
+beamwidth_deg = 8
+boresight = [
+    0,
+    0,
+    1,
+]
+position_m = [
+    0,
+    0,
+    0.52,
+]
+type = "CommAntenna"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    -1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.3553353980406648,
+    0.5,
+    0.375770685239762,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.3553353980406648,
+    -0.5,
+    0.375770685239762,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -0.7697555316265721,
+    -0.5,
+    -0.3027783650607987,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    -1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.32138609698732673,
+    0.5,
+    -0.3269075468183327,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    1,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8034132276858292,
+    -0.32301929851236477,
+    -0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    -1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8321887492931574,
+    0.5,
+    0.33044549104678245,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    -1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8245342480357242,
+    0.5,
+    -0.35771752716946326,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -0.5,
+    0.35381921491298396,
+    0.3947981494045158,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -1,
+    -0.3423768340755461,
+    0.3356025697008336,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -1,
+    0.2962487876042197,
+    -0.33675243786496767,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -1,
+    -0.33902429027564795,
+    -0.3330357843497872,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    -1,
+]
+mass_kg = 0.201
+position_m = [
+    0.3148703921485259,
+    -0.2804917619616263,
+    0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    -1,
+]
+mass_kg = 0.201
+position_m = [
+    0.3432586493114971,
+    0.2853910301810877,
+    0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    -1,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8147881110320937,
+    0.37213621893829063,
+    0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    -1,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8080932411833361,
+    -0.3781694145000499,
+    0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.30596948381868233,
+    -0.5,
+    -0.26565163521321544,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    1,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8090177989449983,
+    -0.5,
+    0.3460315533356917,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    1,
+]
+mass_kg = 0.201
+position_m = [
+    -0.8241012686871234,
+    0.28077639003921334,
+    -0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    1,
+]
+mass_kg = 0.201
+position_m = [
+    0.30164811048898654,
+    0.2675528003609501,
+    -0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    0,
+    0,
+    1,
+]
+mass_kg = 0.201
+position_m = [
+    0.2846605702766193,
+    -0.2850160303041542,
+    -0.5,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    -1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.5,
+    -0.24342785534252873,
+    0.279208431941103,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    -1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.5,
+    0.28153967660057044,
+    0.20864227518547596,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    -1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.5,
+    0.24978173292259692,
+    -0.30893387597975486,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+direction = [
+    -1,
+    0,
+    0,
+]
+mass_kg = 0.201
+position_m = [
+    0.5,
+    -0.26286296026112566,
+    -0.26704733013153437,
+]
+thrust_n = 1
+type = "RcsThruster"
+
+[[spacecraft.hardware]]
+count = 1
+inertia_kgm2 = 0.24
+mass_kg = 16
+max_speed_rads = 628.3
+max_torque_nm = 1
+model = "RW-XLarge"
+type = "ReactionWheelCluster"
+
+[[spacecraft.hardware]]
+boresight = [
+    -1,
+    0,
+    0,
+]
+fov_deg = 10
+position_m = [
+    -1.02,
+    -0.18568500519344117,
+    0.007589940089101743,
+]
+type = "StarTracker"
+
+[[spacecraft.hardware]]
+boresight = [
+    -1,
+    0,
+    0,
+]
+fov_deg = 15
+position_m = [
+    -1.02,
+    -0.0023794396758689677,
+    0.2424652985906159,
+]
+type = "Lidar"
+
+[spacecraft.propulsion]
+isp_s = 220
+thrust_n = 10
+type = "Monoprop"
+
+[target_body]
+ephemeris = "Anise"
+name = "Mercury"
+
+[trajectory]
+departure_body = "Earth"
+departure_epoch = "2026-11-12T12:24:49 UTC"
+phases = ["Cruise"]
+solver = "GridSearch"
+
+[trajectory.capture]
+target_orbit_radius_m = 2800000
+
+[trajectory.cruise]
+tof_days_max = 500
+tof_days_min = 100

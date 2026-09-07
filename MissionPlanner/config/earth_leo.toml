@@ -1,0 +1,105 @@
+# Earth LEO Science Orbiter
+# 500 kg spacecraft in a 500 km circular sun-synchronous-compatible orbit.
+#
+# Orbit characteristics at 500 km:
+#   Period    ≈ 94.6 min
+#   v_circ    ≈ 7613 m/s
+#   J2 node precession ≈ −6.4°/day (drives inclination choice for sun-sync)
+#   Drag lifetime ~ years (low solar activity)
+#
+# Third-body perturbations: Moon raises apoapsis by ~200 m/orbit at 500 km;
+# Sun perturbation significant over mission lifetimes > 6 months.
+# Both are required for accurate long-duration propagation.
+#
+# The body-centric Hohmann below sizes the circularisation burn from a
+# 200 km GTO-like parking orbit to the 500 km science orbit.
+
+[mission]
+name      = "Earth LEO Science Orbiter"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+# Physical constants from catalog: EGM2008 μ, EGM96 J2-J4, US Standard 1976 atm.
+name          = "Earth"
+ephemeris     = "Anise"
+third_bodies  = ["Moon", "Sun"]
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 500.0
+dry_mass_kg        = 450.0
+propellant_mass_kg =  50.0
+bus_dims_m         = [1.5, 1.5, 1.0]
+inertia_diag_kgm2  = [100.0, 100.0, 150.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.12
+inertia_kgm2   = 0.012
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 1.0
+count        = 8
+moment_arm_m = 0.75
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 3.0
+efficiency = 0.30
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+#
+# Solver = Hohmann gives the body-centric sizing for circularisation from a
+# 200 km parking orbit to the 500 km science orbit:
+#   r_park ≈ 6 571 km (body_radius + 200 km)
+#   r_cap  ≈ 6 878 km (body_radius + 500 km)
+#   ΔV total ≈ 168 m/s
+
+[trajectory]
+phases         = ["Capture", "Survey"]
+solver         = "Hohmann"
+departure_body = "Earth"   # body-centric mission, no interplanetary leg -- parking orbit is also at Earth
+
+[trajectory.capture]
+target_orbit_radius_m = 6_878_137.0   # 500 km altitude: R_Earth(6 378 137) + 500 000 m
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter        = "EKF"
+pointing_mode             = "Nadir"
+attitude_controller       = "ReactionWheelPD"
+position_accuracy_req_m   = 50.0
+velocity_accuracy_req_mps = 0.005
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-10
+atol             = 1.0e-8
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/earth_leo/"

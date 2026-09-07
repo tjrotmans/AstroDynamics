@@ -1,0 +1,7 @@
+target/
+out/
+*.db
+*.png
+**/*.rs.bk
+.DS_Store
+examples/solar_sail_trajectory/rust-toolchain.toml

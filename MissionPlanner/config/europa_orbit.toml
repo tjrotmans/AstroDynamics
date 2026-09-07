@@ -1,0 +1,127 @@
+# Europa Orbit Mission
+# Europa Clipper-class science orbiter at 100 km circular orbit around Europa.
+#
+# Mission context: the spacecraft arrives in the Jovian system via a ~6-year
+# Earth-Venus-Earth-Earth-Jupiter (EVEEJ) or direct Earth-Jupiter trajectory,
+# then performs Europa Orbit Insertion (EOI). The interplanetary cruise is
+# handled separately (use Lambert solver with Jupiter as proxy arrival body,
+# ~750 days direct transfer).
+#
+# Physics at 100 km Europa orbit:
+#   v_circ ≈ 1394 m/s
+#   Period ≈ 7117 s (~2 h)
+#   Europa J2 = 4.35e-4 → J2 node precession ≈ 0.01°/day (small)
+#   Jupiter third-body dominates long-term orbit evolution (~10s m/orbit)
+#   Radiation: ~540 krad/day at 100 km — constrains mission duration
+#
+# Ephemeris: Europa is not in DE440S. Keplerian elements below approximate
+# Europa's heliocentric position by Jupiter's orbit (offset < 0.004 AU = 0.08%).
+# Accurate Galilean moon ephemerides require jup438.bsp (Phase 5+ enhancement).
+
+[mission]
+name      = "Europa Science Orbiter"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+# Physical constants from catalog: Anderson et al. 1998 μ, IAU 2015 radius.
+name          = "Europa"
+ephemeris     = "Keplerian"
+third_bodies  = ["Jupiter"]
+
+# Heliocentric ecliptic J2000 elements approximated from Jupiter barycenter
+# (Horizons, epoch 2024-Jun-25.0 TDB = JD 2460486.5).
+# Europa's true heliocentric offset from Jupiter: ~0.004 AU — negligible for
+# interplanetary cruise design; use a Galilean moon kernel for proximity ops.
+[target_body.keplerian_orbit]
+sma_au           = 5.2034
+eccentricity     = 0.04839
+inclination_deg  = 1.305
+raan_deg         = 100.492
+aop_deg          = 14.332
+mean_anomaly_deg = 43.0      # approx. Jupiter position at 2024-Jun-25
+epoch_jd         = 2460486.5
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 2500.0
+dry_mass_kg        = 2000.0
+propellant_mass_kg =  500.0
+bus_dims_m         = [3.0, 3.0, 1.5]
+inertia_diag_kgm2  = [2000.0, 2000.0, 3000.0]
+srp_model          = "FlatPlate"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 316.0
+thrust_n = 900.0            # Jupiter Orbit Insertion requires high thrust
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.20
+inertia_kgm2   = 0.020
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 4.0
+count        = 12
+moment_arm_m = 1.5
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.005
+
+[[spacecraft.hardware]]
+type                    = "OpNavCamera"
+bearing_noise_mrad      = 0.05
+angular_size_noise_mrad = 0.1
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 85.0            # large panels required at 5.2 AU (~1/27 Earth solar flux)
+efficiency = 0.29
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+#
+# Solver = Hohmann gives:
+#   (a) Interplanetary cruise: Earth (1 AU) → Jupiter (5.2 AU)
+#       ΔV dep ≈ 6.0 km/s, ΔV arr ≈ 5.6 km/s, TOF ≈ 997 days (~2.7 years)
+#   (b) Body-centric EOI: approach orbit (1.5× r_cap) → 100 km Europa orbit
+#       ΔV ≈ 300-400 m/s (highly v_inf dependent — use Lambert for exact value)
+
+[trajectory]
+phases         = ["Cruise", "Capture", "Survey"]
+solver         = "Hohmann"
+departure_body = "Earth"
+
+[trajectory.capture]
+target_orbit_radius_m = 1_660_800.0   # 100 km altitude: R_Europa(1 560 800) + 100 000 m
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter        = "EKF"
+pointing_mode             = "Nadir"
+attitude_controller       = "ReactionWheelPD"
+position_accuracy_req_m   = 200.0
+velocity_accuracy_req_mps = 0.05
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 0
+output_dir       = "out/europa_orbit/"

@@ -1,0 +1,12 @@
+mode=EarthToOrbit
+gate=1
+r_park=0.15
+c_gate=3.188388
+c_arc=3.183442
+theta_deg=-2224.0049
+x_section=0.6500
+converged=false
+residual_nd=4.769e-1
+dv_capture_nd=0.49658183
+dv_capture_km_s=0.5088
+delta_pos_km=183303.1110

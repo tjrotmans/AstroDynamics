@@ -1,0 +1,9 @@
+[package]
+name = "ephemeris"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nalgebra = { workspace = true }
+anise = "0.9"
+hifitime = "4"

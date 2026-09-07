@@ -1,0 +1,151 @@
+# Mars orbiter, `Launch` departure mode (Phase 14).
+#
+# The mission starts from a launch site, not from a parking orbit the
+# spacecraft already sits in: the launch vehicle's upper stage delivers the
+# injection (departure ΔV = the LAUNCHER pool, checked against Falcon 9's
+# verified C3-vs-mass curve), the spacecraft's own tank pays capture only.
+# The single-leg search's departure genes are the asymptote itself
+# (v∞, RLA, DLA); the parking orbit, launch azimuth and injection state are
+# closed-form launch geometry from it (GNC_MANUAL.md §13.6) — no ascent is
+# propagated. Compare mercury_orbiter_example.toml (ParkingOrbit mode, same
+# GA machinery, free burn genes, departure onboard).
+
+[mission]
+name      = "Mars Orbiter (Launch mode)"
+objective = "Orbit"
+
+[target_body]
+name       = "Mars"
+ephemeris  = "Anise"
+
+[spacecraft]
+mass_kg            = 1200.0
+dry_mass_kg        = 700.0
+propellant_mass_kg = 500.0
+bus_dims_m         = [2.0, 1.5, 1.5]
+inertia_diag_kgm2  = [400.0, 500.0, 500.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "Falcon9"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 315.0
+thrust_n = 440.0
+
+# Hardware needed for a Phase 03 replay (wheels for cruise pointing, a
+# panel/star tracker to give the attitude commander Sun- and target-pointing
+# rules); RCS falls back to the idealized symmetric cluster when nothing is
+# placed. Sized loosely for a ~1 t bus.
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "RW-Large"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.2
+inertia_kgm2   = 0.05
+mass_kg        = 8.0
+
+# Two symmetric wings: a single off-axis panel moves the CoM ~4 cm off the
+# main-engine axis, and 440 N × 4 cm ≈ 18 N·m of burn torque is far above
+# any RCS cluster's authority (the E5 check's failure case — measured live
+# the vehicle tumbled during the capture burn and burned the
+# tank dry off-axis). Symmetric wings keep the engine through the CoM.
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 3.0
+width_m    = 1.0
+height_m   = 3.0
+normal     = [0.0, 1.0, 0.0]
+position_m = [0.0, 0.75, 0.0]
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 3.0
+width_m    = 1.0
+height_m   = 3.0
+normal     = [0.0, 1.0, 0.0]
+position_m = [0.0, -0.75, 0.0]
+
+[[spacecraft.hardware]]
+type       = "StarTracker"
+boresight  = [-1.0, 0.0, 0.0]
+fov_deg    = 10.0
+position_m = [-1.0, 0.0, 0.0]
+noise_rad  = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "GridSearch"
+departure_epoch = "2026-10-15T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.departure]
+mode = "Launch"
+# 185 km parking orbit (default) before the upper-stage injection; the
+# plane is the minimum-inclination one reachable from the site without a
+# dogleg: max(|DLA|, 28.5°).
+[trajectory.departure.launch_site]
+name    = "Cape Canaveral"
+lat_deg = 28.5
+lon_deg = -80.6
+
+[trajectory.cruise]
+tof_days_min          = 150.0
+tof_days_max          = 400.0
+departure_window_days = 60.0
+
+[trajectory.capture]
+target_orbit_radius_m = 3_790_000.0   # ~400 km periapsis
+capture_eccentricity  = 0.9           # eccentric capture first, circularise later
+
+[optimization]
+objective             = "MinDeltaV"
+method                = "GA"
+departure_body        = "Earth"
+target_body           = "Mars"
+departure_epoch       = "2026-10-15T00:00:00 UTC"
+departure_window_days = 60.0
+# In Launch mode these bound the asymptote v∞ via the tangential-burn
+# mapping v∞ = sqrt((v_c + Δv)² − 2μ/r_p): 3.4–4.2 km/s of burn from 185 km
+# (escape itself is ≈3.23 km/s there) is C3 ≈ 4–22 km²/s², the Earth–Mars range.
+dv_min_ms     = 3400.0
+dv_max_ms     = 4200.0
+max_coast_days = 400.0
+
+[optimization.force_model]
+integrator = "Dopri5"
+rtol       = 1.0e-9
+atol       = 1.0e-3
+
+[[optimization.force_model.bodies]]
+name = "Earth"
+role = "CentralWhenInSoi"
+
+[[optimization.force_model.bodies]]
+name = "Mars"
+role = "CentralWhenInSoi"
+
+[optimization.ga]
+population_size = 60
+generations     = 24
+crossover_rate  = 0.8
+mutation_rate   = 0.1
+elitism_count   = 2
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "Nadir"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/mars_orbiter_launch/"

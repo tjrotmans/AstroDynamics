@@ -1,0 +1,96 @@
+# Mars Orbit Insertion Mission
+# 500 kg spacecraft, biprop, 400 km circular orbit.
+# Demonstrates a different body, lighter spacecraft, and Lambert solver.
+
+[mission]
+name      = "Mars Orbit Insertion"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name       = "Mars"
+mu_m3s2    = 4.282837362069909e13   # Konopliv et al. 2011 (MRO)
+radius_m   = 3_396_200.0
+gravity_model = "J2J3J4"
+atmosphere    = "Exponential"
+j2 =  1.96045e-3                    # MRO/MGS gravity solution
+j3 =  3.1425e-5
+j4 = -1.5385e-5
+ephemeris  = "Anise"
+# Phobos orbits at ~9 376 km; Deimos at ~23 458 km. Both raise periapsis/apoapsis
+# by ~1-10 m per orbit at 400 km altitude — cumulative effect matters over weeks.
+third_bodies = ["Phobos", "Deimos"]
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 500.0
+dry_mass_kg        = 300.0
+propellant_mass_kg = 200.0
+bus_dims_m         = [1.5, 1.5, 0.5]
+inertia_diag_kgm2  = [100.0, 100.0, 150.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "Falcon9"   # Phase 8c: rocket provides departure C3, not onboard tank
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 310.0
+thrust_n = 400.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.08
+inertia_kgm2   = 0.008
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 4.0
+count        = 8
+moment_arm_m = 0.8
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise", "Capture"]
+solver          = "Lambert"
+departure_epoch = "2026-10-28T00:00:00 UTC"   # verified porkchop minimum, de440s.bsp scan
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 150.0
+tof_days_max          = 400.0
+grid_resolution       = 80
+departure_window_days = 120.0   # minimum lands at +3.8d, interior to this window
+
+[trajectory.capture]
+target_orbit_radius_m = 3_796_200.0   # 400 km altitude above Mars surface
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 100
+output_dir       = "out/mars_orbit/"

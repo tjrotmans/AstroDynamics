@@ -1,0 +1,105 @@
+# Lunar Orbit Mission
+# 500 kg science orbiter at 100 km circular lunar orbit.
+#
+# Trajectory note: the interplanetary TLI trajectory is NOT sized here — that
+# requires the WSB or CRTBP manifold pipeline in AstroProbs/LunarTrajectories.
+# Hohmann below gives the LOI circularisation burn sizing only (approach orbit
+# → 100 km circular). TLI ΔV from Earth parking orbit is ~3.1 km/s (see
+# AstroProbs/Artemis for a real validated example).
+#
+# Third-body perturbations: Earth is the dominant perturber of low lunar orbits
+# (lunar J2 precession rate ≈ 0.04°/day; Earth third-body torques comparable).
+# Sun perturbation becomes important for mission arcs > 1 month.
+
+[mission]
+name      = "Lunar Science Orbiter"
+objective = "Orbit"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+# Physical constants from catalog: DE430 μ, GRAIL J2-J4, IAU 2015 radius.
+name          = "Moon"
+ephemeris     = "Anise"
+third_bodies  = ["Earth", "Sun"]
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 500.0
+dry_mass_kg        = 380.0
+propellant_mass_kg = 120.0
+bus_dims_m         = [1.5, 1.5, 1.0]
+inertia_diag_kgm2  = [100.0, 100.0, 150.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 310.0
+thrust_n = 500.0          # LOI burn at Moon requires high thrust to keep burn short
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.12
+inertia_kgm2   = 0.012
+
+[[spacecraft.hardware]]
+type         = "RCS"
+thrust_n     = 4.0
+count        = 8
+moment_arm_m = 0.75
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+[[spacecraft.hardware]]
+type                    = "OpNavCamera"
+bearing_noise_mrad      = 0.1
+angular_size_noise_mrad = 0.2
+
+[[spacecraft.hardware]]
+type       = "SolarPanel"
+area_m2    = 4.0
+efficiency = 0.28
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+#
+# Solver = Hohmann gives the body-centric LOI sizing (approach → 100 km circular).
+# For the full TLI + ballistic lunar transfer, use:
+#   cd AstroProbs/LunarTrajectories && cargo run --bin wsb_pipeline --release
+
+[trajectory]
+phases         = ["Capture", "Survey"]
+solver         = "Hohmann"
+departure_body = "Earth"
+
+[trajectory.capture]
+target_orbit_radius_m = 1_837_400.0   # 100 km altitude: R_Moon(1 737 400) + 100 000 m
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter        = "EKF"
+pointing_mode             = "Nadir"
+attitude_controller       = "ReactionWheelPD"
+position_accuracy_req_m   = 100.0
+velocity_accuracy_req_mps = 0.01
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-10
+atol             = 1.0e-8
+dt_truth_s       = 10.0
+dt_meas_s        = 120.0
+monte_carlo_runs = 0
+output_dir       = "out/lunar_orbit/"

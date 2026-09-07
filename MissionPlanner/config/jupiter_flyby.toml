@@ -1,0 +1,119 @@
+# Jupiter Flyby Mission — Phase 8 verification case
+#
+# Purpose: a second, very different-scale Lambert/GridSearch test case from
+# mars_flyby.toml. Earth-Jupiter spans a much larger ratio of orbital radii
+# (1 AU -> 5.2 AU) than Earth-Mars (1 AU -> 1.52 AU).
+#
+# Window note (re-verified): the original window (anchor
+# TOF 800-1200 days) gave a result flagged as suspicious vs.
+# real missions in a prior session — but re-scanning showed it was NOT a
+# window-centering bug (widening the box barely moved the result). The
+# actual causes were two real bugs, both now fixed:
+#   1. `best_point_for_objective` was minimizing dep+arrival ΔV even for this
+#      Flyby mission, wrongly charging the arrival v∞ as if it were a real
+#      capture burn — biased the search toward slow, low-arrival-speed
+#      transfers no flyby would fly. Fixed to minimize C3 alone for Flyby.
+#   2. `orbital_math::lambert` had a near-180°-transfer-angle numerical
+#      instability (transfer plane nearly degenerate there — Vallado §5.3):
+#      C3 spiked to 2245 km²/s² right next to a clean ~100 km²/s²
+#      neighborhood a few degrees away. Fixed by widening the degenerate-
+#      geometry rejection threshold.
+# With both fixed, a full-synodic-period (400-day) departure scan restricted
+# to a realistic short-way TOF bracket (600-950 days, comfortably clear of
+# the near-180° band near TOF~975-1250 days) finds a clean, non-edge-pinned
+# global minimum: departure 2025-09-24, TOF 773.2 days, C3 90.48 km²/s².
+# Cross-checked against the analytic `HohmannSolver` for the same r1/r2
+# (idealized circular/coplanar: TOF 997.6 days, C3 77.3 km²/s²) — the real
+# result is faster but higher-energy than the idealized case, a sensible
+# trade given Jupiter's real eccentricity/inclination, and lands between the
+# idealized Hohmann and Pioneer 10's real flown profile (~640 days, C3 in
+# the same ~80-90 km²/s² ballpark) — exactly where a minimum-C3 (not
+# minimum-time) result should sit.
+#
+# Note for future readers: there is a second, longer "long-way" Lambert
+# branch beyond the near-180° band (TOF > ~1300 days) whose C3 keeps
+# decreasing as TOF grows arbitrarily large (89 km²/s² at 1400 days, 87 at
+# 1670, still falling) — not pursued or bounded against here. No real direct
+# flyby mission flies a multi-year-longer transfer to shave a few km²/s² off
+# C3; this is a real, low-priority feature of the Lambert solution space, not
+# a bug to "fix" by extending the TOF window further.
+
+[mission]
+name      = "Jupiter Flyby"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name      = "Jupiter"
+ephemeris = "Anise"
+# mu_m3s2/radius_m/gravity_model/atmosphere resolved from the body_models
+# catalog by name (Phase 5) — Jupiter is already in it.
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 400.0
+dry_mass_kg        = 320.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [1.0, 1.0, 1.2]
+inertia_diag_kgm2  = [60.0, 60.0, 40.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "AtlasV551Star48"   # Phase 8c: only catalog entry verified anywhere near C3~90
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[[spacecraft.hardware]]
+type                = "OpNavCamera"
+bearing_noise_mrad  = 0.1
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "GridSearch"
+departure_epoch = "2025-09-24T00:00:00 UTC"   # verified porkchop minimum, de440s.bsp scan — see window note above
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 650.0
+tof_days_max          = 900.0
+grid_resolution       = 80
+departure_window_days = 80.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s        = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 100
+output_dir       = "out/jupiter_flyby/"

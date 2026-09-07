@@ -1,0 +1,97 @@
+# Mars round trip — OUTBOUND leg (Earth -> Mars)
+# First half of the Phase 8l basic round-trip example. Identical physical
+# setup and verified window to mars_flyby.toml (the Phase 8b/8g reference
+# case) — duplicated here under the round-trip pair's naming so the example
+# library has a self-contained outbound+return pair (mars_flyby.toml stays
+# as its own standalone Flyby-objective example, unchanged).
+#
+# See mars_round_trip_return.toml for the companion return leg, the
+# window-scan rationale, and an important caveat: the gap between this leg's
+# arrival and the return leg's departure is a time offset only — this is a
+# Flyby (hyperbolic passage, no Mars-orbit capture), so there is no modeled
+# "stay in Mars orbit" between the two legs.
+
+[mission]
+name      = "Mars Round Trip — Outbound"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name       = "Mars"
+mu_m3s2    = 4.282837362069909e13   # Konopliv et al. 2011 (MRO)
+radius_m   = 3_396_200.0
+gravity_model = "J2J3J4"
+atmosphere    = "Exponential"
+j2 =  1.96045e-3                    # MRO/MGS gravity solution
+j3 =  3.1425e-5
+j4 = -1.5385e-5
+ephemeris  = "Anise"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 400.0
+dry_mass_kg        = 320.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [1.0, 1.0, 1.2]
+inertia_diag_kgm2  = [60.0, 60.0, 40.0]
+srp_model          = "Cannonball"
+launch_vehicle     = "Falcon9"   # Phase 8c: rocket provides departure C3, not onboard tank
+
+[spacecraft.propulsion]
+type     = "Monoprop"
+isp_s    = 220.0
+thrust_n = 22.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.05
+inertia_kgm2   = 0.006
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[[spacecraft.hardware]]
+type                = "OpNavCamera"
+bearing_noise_mrad  = 0.1
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2026-10-28T00:00:00 UTC"   # same verified window as mars_flyby.toml
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 250.0
+tof_days_max          = 380.0
+grid_resolution       = 80
+departure_window_days = 120.0
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 30.0
+dt_meas_s        = 300.0
+monte_carlo_runs = 100
+output_dir       = "out/mars_round_trip_outbound/"

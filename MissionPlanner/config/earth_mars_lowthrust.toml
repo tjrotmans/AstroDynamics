@@ -1,0 +1,117 @@
+# Earth → Mars low-thrust (ion engine) mission demo for Phase 9h Sims-Flanagan.
+#
+# An SEP (Solar Electric Propulsion) spacecraft transfers from Earth to Mars
+# on a 300-day low-thrust arc. The Sims-Flanagan direct transcription divides
+# the TOF into N=20 equal segments, each with a freely-optimized constant
+# thrust vector, and uses DE/rand/1/bin to minimize control effort while
+# enforcing the match-point constraint.
+#
+# This config intentionally reuses the same ANISE-verified Earth-Mars October
+# 2026 departure window from mars_flyby.toml. The 300-day TOF is the
+# [optimization].max_coast_days field used as the Sims-Flanagan TOF.
+#
+# Propulsion system: notional ion engine (Dawn-class: 0.09 N at Isp=3100 s).
+# Dawn operated at 0.09 N average thrust, 3100 s Isp — Rayman et al. (2006),
+# "Dawn: A Mission in Development for Exploration of Main Belt Asteroids Vesta
+# and Ceres", Acta Astronautica 58(11):605–616.
+
+[mission]
+name      = "Earth-Mars Low-Thrust (Sims-Flanagan)"
+objective = "Flyby"
+
+# ── Target body ──────────────────────────────────────────────────────────────
+
+[target_body]
+name          = "Mars"
+ephemeris     = "Anise"
+gravity_model = "PointMass"
+atmosphere    = "None"
+
+# ── Spacecraft ───────────────────────────────────────────────────────────────
+
+[spacecraft]
+mass_kg            = 1350.0   # Dawn wet mass: ~1217.7 kg — rounded up for margin
+dry_mass_kg        = 747.0    # Dawn dry mass: ~747.1 kg (Rayman et al. 2006)
+propellant_mass_kg = 603.0    # Xenon propellant
+bus_dims_m         = [1.64, 1.64, 1.77]
+inertia_diag_kgm2  = [900.0, 900.0, 600.0]
+srp_model          = "Cannonball"
+
+# Ion propulsion system (IPS) — NSTAR heritage, Dawn average operating point.
+# Thrust: 0.09 N (90 mN nominal; range 19–91 mN).
+# Isp: 3100 s (nominal at full throttle).
+# Sources: Rayman et al. (2006), Polk et al. (2004) AIAA 2004-3982.
+[spacecraft.propulsion]
+type     = "Ion"
+isp_s    = 3100.0
+thrust_n = 0.09
+
+[[spacecraft.hardware]]
+type           = "StarTracker"
+noise_rad      = 9.7e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.01
+
+# ── Trajectory ───────────────────────────────────────────────────────────────
+# These fields satisfy the TOML schema. The low-thrust subcommand primarily
+# uses [optimization] for departure body/epoch; [trajectory] is still
+# required for schema compliance.
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2026-10-28T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min          = 250.0
+tof_days_max          = 350.0
+grid_resolution       = 40
+departure_window_days = 60.0
+
+# ── Optimization (used by low-thrust subcommand) ─────────────────────────────
+# max_coast_days is used as the Sims-Flanagan TOF.
+
+[optimization]
+objective             = "MatchTargetDistance"
+method                = "GA"
+departure_body        = "Earth"
+target_body           = "Mars"
+departure_epoch       = "2026-10-28T00:00:00 UTC"
+departure_window_days = 30.0
+dv_min_ms             = 3000.0
+dv_max_ms             = 6000.0
+max_coast_days        = 300.0   # used as the low-thrust TOF
+
+[optimization.force_model]
+srp        = false
+integrator = "Dopri5"
+rtol       = 1.0e-8
+atol       = 1.0e-3
+
+[optimization.ga]
+population_size = 200
+generations     = 300
+crossover_rate  = 0.85
+mutation_rate   = 0.15
+elitism_count   = 5
+
+# ── GNC ──────────────────────────────────────────────────────────────────────
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+# ── Simulation ───────────────────────────────────────────────────────────────
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 60.0
+dt_meas_s        = 600.0
+monte_carlo_runs = 0
+output_dir       = "out/earth_mars_lowthrust/"

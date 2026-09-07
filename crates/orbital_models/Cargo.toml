@@ -1,0 +1,10 @@
+[package]
+name = "orbital_models"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nalgebra = { workspace = true }
+orbital_math = { path = "../orbital_math" }
+interpolation = "~0.3"
+rand = "~0.8"

@@ -1,0 +1,142 @@
+# Earth → Pluto flyby via automatic Tisserand beam-search sequence discovery.
+#
+# The [optimization.mga.sequence_search] section triggers automated flyby body
+# discovery. For a Pluto mission the canonical low-ΔV solution uses a Jupiter
+# gravity assist — analogous to New Horizons (2006 launch, JGA in 2007, arrived
+# Pluto 2015 after a 9.5-year transfer). The beam search should also surface
+# multi-swing options (e.g. Earth → Saturn → Uranus → Pluto) for comparison.
+#
+# Pluto is treated as a Keplerian-elements body since it has no dedicated SPICE
+# kernel coverage in de440s.bsp — its mean Keplerian elements are supplied via
+# [target_body.keplerian_orbit] and propagated with a simple 2-body model.
+#
+# Reference window: 2033–2035 (next favorable Jupiter alignment for JGA to Pluto
+# after the New Horizons window). Pluto's current heliocentric distance ~35 AU.
+
+[mission]
+name      = "Earth→Pluto Auto-MGA"
+objective = "Flyby"
+
+[target_body]
+name          = "Pluto"
+mu_m3s2       = 8.719e11           # Brozovic et al. (2015), AJ 150(6)
+radius_m      = 1_188_300.0        # Nimmo et al. (2017), Icarus 287
+gravity_model = "PointMass"
+atmosphere    = "None"
+ephemeris     = "Keplerian"        # Pluto not in de440s; use Keplerian elements
+
+# Pluto mean orbital elements (J2000 epoch).
+# Source: JPL Horizons / Standish & Williams (2012), "Orbital Ephemerides of
+# the Sun, Moon, and Planets", Explanatory Supplement to the Astronomical
+# Almanac, 3rd edition, Table 8.10.a.
+[target_body.keplerian_orbit]
+sma_m            = 5.906_375e12    # 39.482 AU
+eccentricity     = 0.2488273
+inclination_deg  = 17.14175
+raan_deg         = 110.30347
+arg_periapsis_deg = 113.76329
+mean_anomaly_deg = 14.86205        # at J2000 epoch 2000-01-01T12:00:00 TT
+epoch            = "2000-01-01T12:00:00 UTC"
+
+[spacecraft]
+mass_kg            = 480.0
+dry_mass_kg        = 400.0
+propellant_mass_kg = 80.0
+bus_dims_m         = [2.1, 2.7, 0.8]
+inertia_diag_kgm2  = [190.0, 190.0, 220.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 315.0
+thrust_n = 16.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.04
+inertia_kgm2   = 0.005
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 1.5e-4
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.05
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "2033-10-01T00:00:00 UTC"
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min    = 1500.0
+tof_days_max    = 5000.0    # New Horizons took ~9.5 years (3467 days); allow flexibility
+grid_resolution = 30
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-9
+atol             = 1.0e-7
+dt_truth_s       = 60.0
+dt_meas_s        = 600.0
+monte_carlo_runs = 0
+output_dir       = "out/earth_pluto_auto/"
+
+[optimization]
+objective             = "MatchTargetDistance"
+method                = "MGA"
+departure_body        = "Earth"
+target_body           = "Pluto"
+departure_epoch       = "2033-10-01T00:00:00 UTC"
+departure_window_days = 365.0     # 1-year search window around reference epoch
+dv_min_ms             = 0.0
+dv_max_ms             = 20000.0
+max_coast_days        = 5000.0
+
+[optimization.force_model]
+central_body_gravity = "PointMass"
+third_bodies         = []
+include_srp          = false
+integrator           = "DormandPrince45"
+rtol                 = 1.0e-9
+atol                 = 1.0e-7
+
+[optimization.mga]
+# flyby_bodies is ignored when sequence_search is set — auto-discovered below.
+flyby_bodies = []
+# Per-leg TOF ranges — last entry used for any leg beyond the list length.
+# For Earth → Jupiter → Pluto (2 legs): leg 0 ≈ 400–800 d, leg 1 ≈ 3000–4200 d.
+# For longer sequences (3–4 legs via Saturn or Uranus) allow more time per leg.
+leg_tof_days = [
+    [200.0, 1000.0],   # leg 0 (Earth → first flyby)
+    [500.0, 2500.0],   # leg 1
+    [800.0, 3000.0],   # leg 2
+    [1000.0, 3500.0],  # leg 3
+]
+departure_vinf_max_ms = 15000.0   # New Horizons had C3 ≈ 157 km²/s²; allow up to ~12 km/s
+flyby_min_periapsis_m = 71_492_000.0  # Jupiter radius (tightest flyby in pool)
+arrival_vinf_max_ms   = 30000.0
+de_f_weight           = 0.8
+de_cr                 = 0.9
+de_population_size    = 500
+de_generations        = 2000
+de_restarts           = 4
+
+[optimization.mga.sequence_search]
+# Candidate intermediate flyby bodies. Jupiter is the canonical choice for
+# Pluto missions; Saturn and Uranus enable alternative lower-energy paths.
+candidate_bodies  = ["Jupiter", "Saturn", "Uranus"]
+max_legs          = 4      # up to 3 intermediate flybys + final leg to Pluto
+beam_width        = 30     # wide beam — outer solar system has sparse feasible links
+max_sequences_to_optimize = 8
+vinf_departure_estimate_ms = 8000.0  # realistic Earth departure C3 ≈ 60–160 km²/s²

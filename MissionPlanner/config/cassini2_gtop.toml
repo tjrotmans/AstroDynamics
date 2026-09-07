@@ -1,0 +1,162 @@
+# GTOP Cassini-2 benchmark — real sequence and objective (corrected).
+#
+# Verified against literature after finding the older
+# cassini_evvmjs.toml config's docstring cited an incorrect reference value.
+# Real facts, for anyone validating against this again later:
+#
+#   - Sequence: E-V-V-E-J-S (Earth-Venus-Venus-EARTH-Jupiter-Saturn) — five legs,
+#     six bodies. cassini_evvmjs.toml substitutes Mars for the second Earth
+#     flyby, which is a deliberately different (harder, not benchmark-matching)
+#     variant, not "the" GTOP Cassini-2 problem despite its old docstring
+#     claiming so.
+#   - Objective: total mission ΔV INCLUDING the final Saturn orbit-capture burn
+#     — target orbit periapsis 108,950 km, eccentricity 0.98. Not a pure-flyby
+#     ΔV sum.
+#   - Best known solution (Schlueter et al. 2017, hybrid hierarchical
+#     cellular-based GA): ΔV ≈ 6.399 km/s. (Older/weaker solvers historically
+#     reported worse values around 8+ km/s — that is what the old config's
+#     docstring had actually cited, not the true best-known optimum.)
+#   - GTOP problem page: https://www.esa.int/gsp/ACT/projects/gtop/cassini2/
+#
+# 9v-ii/9v-iii resolved the two known modelling gaps this config
+# previously flagged: the capture burn now uses the real eccentric (e=0.98)
+# capture orbit via `capture_eccentricity` (periapsis burn into an ellipse,
+# not circularization), and departure v∞ is bounded to the real GTOP [3, 5]
+# km/s via `departure_vinf_min_ms`/`departure_vinf_max_ms` (previously the
+# DE could converge to a degenerate near-zero departure burn). Remaining
+# approximation: departure epoch/window approximates the real GTOP search
+# bounds (~1997 launch) rather than reproducing them exactly.
+#
+# References:
+#   Izzo & Vinkó (2010), ESA report ESA-ACT-RPT-MAD-2010-01.
+#   Schlueter et al. (2017), state-of-the-art Cassini2 results.
+#   GTOP benchmark suite: https://www.esa.int/gsp/ACT/projects/gtop/cassini2/
+
+[mission]
+name      = "Cassini2 GTOP benchmark (E-V-V-E-J-S)"
+objective = "Orbit"
+
+[target_body]
+name          = "Saturn"
+mu_m3s2       = 3.793_119_0e16   # Jacobson et al. 2006 (SAT252)
+radius_m      = 60_268_000.0
+gravity_model = "PointMass"
+atmosphere    = "None"
+ephemeris     = "Anise"
+
+[spacecraft]
+mass_kg            = 5_700.0
+dry_mass_kg        = 2_500.0
+propellant_mass_kg = 3_200.0
+bus_dims_m         = [6.7, 4.0, 4.0]
+inertia_diag_kgm2  = [8_000.0, 8_000.0, 12_000.0]
+srp_model          = "Cannonball"
+
+[spacecraft.propulsion]
+type     = "Biprop"
+isp_s    = 308.0
+thrust_n = 490.0
+
+[[spacecraft.hardware]]
+type           = "ReactionWheelCluster"
+model          = "generic"
+count          = 4
+max_speed_rads = 628.3
+max_torque_nm  = 0.10
+inertia_kgm2   = 0.015
+
+[[spacecraft.hardware]]
+type      = "StarTracker"
+noise_rad = 5.0e-5
+
+[[spacecraft.hardware]]
+type            = "IMU"
+noise_sigma_mps = 0.02
+
+[trajectory]
+phases          = ["Cruise"]
+solver          = "Lambert"
+departure_epoch = "1997-04-26T00:00:00 UTC"   # real GTOP Cassini2 reference epoch (MJD 50564)
+departure_body  = "Earth"
+
+[trajectory.cruise]
+tof_days_min    = 2_000.0
+tof_days_max    = 4_000.0
+grid_resolution = 30
+
+[trajectory.capture]
+target_orbit_radius_m = 108_950_000.0   # real Cassini2 capture-orbit periapsis
+capture_eccentricity  = 0.98            # real Cassini2 capture-orbit eccentricity (GTOP problem spec)
+
+[gnc]
+navigation_filter   = "EKF"
+pointing_mode       = "VelocityAligned"
+attitude_controller = "ReactionWheelPD"
+
+[simulation]
+integrator       = "DormandPrince45"
+rtol             = 1.0e-10
+atol             = 1.0e-8
+dt_truth_s       = 60.0
+dt_meas_s        = 600.0
+monte_carlo_runs = 0
+output_dir       = "out/cassini2_gtop/"
+
+[optimization]
+objective             = "MatchTargetDistance"
+method                = "MGA"
+departure_body        = "Earth"
+target_body           = "Saturn"
+# GTOP's real t0 bounds are [-1000, 0] MJD2000 = 1997-04-06 .. 2000-01-01;
+# epoch below is the midpoint (JD 2451044.5), window covers the full range.
+# The previous "1997-04-26 ± 100 d" window EXCLUDED the published optimum's
+# departure (1997-11-12) — found in the bounds audit, along with
+# T3/T5/eta3/rp2/rp4 exclusions (see leg_tof_days note below).
+departure_epoch       = "1998-08-19T00:00:00 UTC"
+departure_window_days = 1000.0
+dv_min_ms             = 0.0
+dv_max_ms             = 12_000.0
+max_coast_days        = 4_000.0
+
+[optimization.force_model]
+central_body_gravity = "PointMass"
+third_bodies         = []
+include_srp          = false
+integrator           = "DormandPrince45"
+rtol                 = 1.0e-9
+atol                 = 1.0e-7
+
+[optimization.mga]
+# Real GTOP Cassini-2 sequence: Earth → Venus → Venus → Earth → Jupiter → Saturn.
+flyby_bodies = ["Venus", "Venus", "Earth", "Jupiter"]
+
+# Per-leg TOF ranges (days) — the REAL GTOP Cassini-2 bounds (pykep
+# cassini_2 problem definition), NOT the real-Cassini timeline. The previous
+# ranges here were written from Cassini's flown trajectory and excluded the
+# published optimum's T3 = 53.3 d and T5 = 2200 d — the GTOP optimum is a
+# different solution family (53-day V→E sprint, 2200-day slow J→S leg with a
+# distant 70-R_J Jupiter pass) than the flown mission.
+leg_tof_days = [
+    [100.0, 400.0],     # Earth → Venus (leg 0)
+    [100.0, 500.0],     # Venus → Venus (leg 1, resonant return)
+    [30.0, 300.0],      # Venus → Earth (leg 2)
+    [400.0, 1_600.0],   # Earth → Jupiter (leg 3)
+    [800.0, 2_200.0],   # Jupiter → Saturn (leg 4)
+]
+
+departure_vinf_min_ms = 3_000.0   # real GTOP Cassini2 bound: v_inf_dep in [3, 5] km/s
+departure_vinf_max_ms = 5_000.0   # (Cassini's real C3 ~ 16.6 km^2/s^2 -> v_inf ~ 4.1 km/s)
+flyby_min_periapsis_m = 6_152_000.0  # Venus radius (tightest flyby body in sequence)
+arrival_vinf_max_ms   = 20_000.0
+de_f_weight           = 0.8
+de_cr                 = 0.9
+# Fast-scan budget (cut again same day for ~20-min multi-seed
+# sweeps under the graded-penalty fitness, which roughly doubled per-eval
+# cost by evaluating full chains instead of bailing at the first infeasible
+# leg): ~255k evaluations. Population stays ≥ 10× the 22-dim chromosome
+# (the DE guideline) so the search doesn't degenerate; the cut is in
+# generations and restarts. Previous fast-scan budget was 250/1000/3
+# (~575k evals, ~35-40 min); restore 600/3000/5 for a real benchmark attempt.
+de_population_size    = 250
+de_generations        = 600
+de_restarts           = 2

@@ -1,0 +1,12 @@
+rank=3
+theta_deg=383.2123
+r_park=0.20000000
+branch_idx=9
+t_u=3.56910926
+t_s=-3.24132842
+residual_nd_orig=2.1252e-1
+residual_km_orig=81691.53
+residual_nd=1.7323e-1
+residual_km=66591.3687
+dv_patch_km_s=0.173836
+converged=false

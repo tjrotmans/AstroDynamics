@@ -1,0 +1,89 @@
+[package]
+name = "lunar_trajectories"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lunar_traj"
+path = "src/main.rs"
+
+
+[[bin]]
+name = "wsb_pipeline"
+path = "src/bin/wsb_pipeline.rs"
+
+[[bin]]
+name = "wsb_search"
+path = "src/bin/wsb/wsb_search.rs"
+
+[[bin]]
+name = "wsb_refine"
+path = "src/bin/wsb/wsb_refine.rs"
+
+[[bin]]
+name = "wsb_sensitivity"
+path = "src/bin/wsb/wsb_sensitivity.rs"
+
+[[bin]]
+name = "wsb_dense_traj"
+path = "src/bin/wsb/wsb_dense_traj.rs"
+
+[[bin]]
+name = "wsb_basin"
+path = "src/bin/wsb/wsb_basin.rs"
+
+[[bin]]
+name = "wsb_maxhifi"
+path = "src/bin/wsb/wsb_maxhifi.rs"
+
+[[bin]]
+name = "wsb_circularize"
+path = "src/bin/wsb/wsb_circularize.rs"
+
+
+[[bin]]
+name = "artemis_circularize"
+path = "src/bin/artemis_circularize.rs"
+
+[[bin]]
+name = "wsb_optimize"
+path = "src/bin/wsb/wsb_optimize.rs"
+
+[[bin]]
+name = "wsb_stats"
+path = "src/bin/wsb/wsb_stats.rs"
+
+[[bin]]
+name = "wsb_sensitivity_individual"
+path = "src/bin/wsb/wsb_sensitivity_individual.rs"
+
+[[bin]]
+name = "wsb_continuation_corrected"
+path = "src/bin/wsb/wsb_continuation_corrected.rs"
+
+# ── Heteroclinic connection transfers (CRTBP, manifold/Poincaré methods) ──────
+[[bin]]
+name = "find_orbits"
+path = "src/bin/heteroclinic/find_orbits.rs"
+
+[[bin]]
+name = "find_transfers"
+path = "src/bin/heteroclinic/find_transfers.rs"
+
+[[bin]]
+name = "improve_transfers"
+path = "src/bin/heteroclinic/improve_transfers.rs"
+
+[[bin]]
+name = "plot_manifolds"
+path = "src/bin/heteroclinic/plot_manifolds.rs"
+
+[dependencies]
+nalgebra       = { workspace = true }
+ode_solvers    = "0.4"
+orbital_models = { path = "../../crates/orbital_models" }
+ephemeris      = { path = "../../crates/ephemeris" }
+crtbp          = { path = "../../crates/crtbp" }
+hifitime       = "4"
+rayon          = "1"
+rand           = "0.8"
